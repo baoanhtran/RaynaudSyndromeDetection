@@ -54,6 +54,14 @@ def get_coordinates():
             
             break
 
+
+    # Draw the points on the image.
+    for x, y in chosen_coordinates:
+        cv2.circle(img, (x, y), 2, (255, 0, 0), -1)
+
+    # Save the image with the points drawn on it.
+    cv2.imwrite("coordinates.jpg", img)
+    
     # Release the video capture object and close all windows when done.
     cap.release()
     cv2.destroyAllWindows()
@@ -67,4 +75,5 @@ def get_temperature(frame_thermal, coordonnee_choisi):
         value_pointer = frame_thermal[y_mouse, x_mouse][0] # Obtenir la valeur du pixel à la position du clic de la souris (indice 0 car l'image est en niveaux de gris)
         temperature_pointer = (value_pointer / 255.) * (TEMPERATURE_MAX - TEMPERATURE_MIN) + TEMPERATURE_MIN # Normaliser la température à la plage de la caméra
         list_of_temp.append(temperature_pointer) # Ajouter la température à la liste des températures
+
     return list_of_temp
