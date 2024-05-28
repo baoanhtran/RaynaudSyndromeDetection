@@ -8,16 +8,16 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.title("Hello, World!")
+        self.title("Raynaud Syndrome Detector")
         self.geometry("400x300")
-
-        # Start measuring button
-        self.measure_btn = tk.Button(self, text="Start measuring", command=self.start_measuring)
-        self.measure_btn.pack(pady=20)
 
         # Get coordinates button
         self.get_coordinates_btn = tk.Button(self, text="Get coordinates and initial temperatures", command=self.get_coordinates)
         self.get_coordinates_btn.pack(pady=20)
+
+        # Start measuring button
+        self.measure_btn = tk.Button(self, text="Start measuring", command=self.start_measuring)
+        self.measure_btn.pack(pady=20)
 
         # Show graph button
         self.show_graph_btn = tk.Button(self, text="Show graph", command=self.show_graph)

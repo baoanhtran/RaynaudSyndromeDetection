@@ -10,14 +10,14 @@ def show_graph():
     time = [float(t) for t in time]
     x_range = np.linspace(0, max(time), 1000)
 
-    temp_keys = ['Point 1', 'Point 2', 'Point 3', 'Point 4']
-    temps = [[temp[i] for temp in temperatures_dict.values()] for i in range(4)]    
+    temp_keys = ['Point 1', 'Point 2', 'Point 3', 'Point 4', 'Point 5', 'Point 6', 'Point 7', 'Point 8']
+    temps = [[temp[i] for temp in temperatures_dict.values()] for i in range(8)]    
     polynomials = [np.poly1d(np.polyfit(time, temp, 3)) for temp in temps]
 
     plt.get_current_fig_manager().window.state('zoomed')
 
     for i, (temp, poly, key) in enumerate(zip(temps, polynomials, temp_keys), start=1):
-        plt.subplot(2, 2, i)
+        plt.subplot(2, 4, i)
         plt.plot(time, temp, label=key)
         plt.plot(x_range, poly(x_range), label='Polynomial fit')
         plt.xlabel('Time (seconds)')

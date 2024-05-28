@@ -14,8 +14,6 @@ start_time = None # Le temps de démarrage de la mise à jour des températures
 
 def initialize_camera():
     thermal_camera = cv2.VideoCapture(0, cv2.CAP_DSHOW) # Ouvrir la caméra thermique
-    # thermal_camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1920) # Définir la largeur de l'image
-    # thermal_camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080) # Définir la hauteur de l'image
     thermal_camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc('Y','1','6',' ')) # Définir le codec pour la caméra thermique, Y16 est un format de pixel 16 bits
     thermal_camera.set(cv2.CAP_PROP_CONVERT_RGB, 0) # Désactiver la conversion en RGB
     return thermal_camera
