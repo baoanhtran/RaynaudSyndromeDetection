@@ -34,14 +34,14 @@ class App(tk.Tk):
 
     def start_measuring(self):
         start_measure()
-        messagebox.showinfo("Success", "Temperature measurements saved to temperatures.json")
+        messagebox.showinfo("Success", "Temperature measurements saved")
 
     def check_coordinates(self):
         check_coordinates()
 
     def get_coordinates(self):
         get_coordinates()
-        messagebox.showinfo("Success", "Coordinates saved to coordinates.txt")
+        messagebox.showinfo("Success", "Coordinates and temperatures saved")
 
     def show_graph(self):
         show_graph()
