@@ -1,7 +1,8 @@
 from connect_camera import start_measure
 from get_fingers_coordinates import get_coordinates
 from check_coordinates import check_coordinates
-from tracer import show_graph
+# from tracer import show_graph
+from traitement_donnee import main
 import tkinter as tk
 from tkinter import messagebox
 
@@ -44,7 +45,7 @@ class App(tk.Tk):
         messagebox.showinfo("Success", "Coordinates and temperatures saved")
 
     def show_graph(self):
-        show_graph()
+        main()
 
     def quit(self):
         self.destroy()
