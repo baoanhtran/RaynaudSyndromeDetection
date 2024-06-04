@@ -67,7 +67,7 @@ def Tlag(temps_2, temperatures_2, ordre):
     indice = snl.find_peaks(poly_2(temps_2))[0]
     lag = temps_2[(indice[0])]
 
-    return lag
+    return lag, indice[0]
 
 def Gmax(temps_1, temperatures_1, ordre):
     coef_1 = np.polyfit(temps_1, temperatures_1, ordre)
@@ -76,8 +76,10 @@ def Gmax(temps_1, temperatures_1, ordre):
     list_max = []
     for i in indice_max:
         list_max.append(poly_d1(temps_1)[i])
+
+    i_max= list(poly_d1(temps_1)).index(max(list_max))
     
-    return max(list_max)
+    return max(list_max), i_max
 
 def retrouve_polynome_fit(temps, températures, ordre):
     coef = np.polyfit(temps, températures, ordre)
@@ -110,7 +112,7 @@ def T_pre(fichier_txt):
 
     return np.mean(l3)
 
-def tracer_donnees_global(temps, temperatures_moyennes, n, step, fichier_txt):
+def tracer_donnees_global(temps, temperatures_moyennes, n, step, fichier_txt, nom):
     # Générer la fonction approximative
     poly_approx = retrouve_polynome_fit(temps, temperatures_moyennes, n)
 
@@ -119,13 +121,8 @@ def tracer_donnees_global(temps, temperatures_moyennes, n, step, fichier_txt):
     temps_derivee_2, temperatures_moyennes_derivee_2 = derivee_list(temps_derivee, temperatures_moyennes_derivee, step)
 
     # Filtrer les valeurs
-    temperatures_moyennes_derivee = low_pass_filter(temperatures_moyennes_derivee)
-    temperatures_moyennes_derivee_2 = low_pass_filter(temperatures_moyennes_derivee_2)
-
-    # Trouver le premier maximum de la première dérivée
-    # peaks, _ = snl.find_peaks(temperatures_moyennes_derivee)
-    # # Premier maximum de la première dérivée
-    # temps_max = temps_derivee[peaks[0]]
+    # temperatures_moyennes_derivee = low_pass_filter(temperatures_moyennes_derivee)
+    # temperatures_moyennes_derivee_2 = low_pass_filter(temperatures_moyennes_derivee_2)
 
     # Générer la fonction approximative derivée d'ordre 1 et 2
     poly_1 = retrouve_polynome_fit(temps_derivee, temperatures_moyennes_derivee, n-1)
@@ -134,80 +131,104 @@ def tracer_donnees_global(temps, temperatures_moyennes, n, step, fichier_txt):
     # Création de la figure et des sous-graphiques
     fig, axs = plt.subplots(3, 2, figsize=(14, 14)) # 3 sous-graphiques, 2 colonnes
 
-    T_lag = Tlag(temps_derivee_2, temperatures_moyennes_derivee_2, n-2)
-    G_max = Gmax(temps_derivee, temperatures_moyennes_derivee, n-1)
+    T_lag, i_lag = Tlag(temps_derivee_2, temperatures_moyennes_derivee_2, n-2)
+    G_max, i_max = Gmax(temps_derivee, temperatures_moyennes_derivee, n-1)
+    T_lag = round(T_lag, 2)
+    G_max = round(G_max, 2)
+
     # Tracer le polynôme
+    temps, temperatures_moyennes, point_ajoute = add_points(temps, temperatures_moyennes)
  
     # Tracé de la première figure (Polynôme)
     axs[0, 0].plot(temps, poly_approx(temps), 'r', label=f"Polynôme approximatif d'ordre {n}")
     axs[0, 0].scatter(temps, temperatures_moyennes, label='Température moyenne', marker='.')
     axs[0, 0].set_title('Données originales (Courbe de réchauffement) et polynôme approximatif')
-    # axs[0, 0].set_ylim((18, 36))
+    axs[0, 0].set_ylim((20, 36))
     axs[0, 0].set_ylabel('Température:°C')
     axs[0, 0].grid(True)
     axs[0, 0].legend()
 
     # Tracé de la deuxième figure (Première dérivée)
     axs[1, 0].scatter(temps_derivee, temperatures_moyennes_derivee, s=10)
-    axs[1, 0].plot(temps_derivee, poly_1(temps_derivee), 'y', label=f"Gmax = {G_max}")
-    # Trace le premier maximum de la première dérivée
-    # axs[1, 0].plot(temps_max, poly_1(temps_max), 'r*', label=f'Tmax : {temps_max}')
-    # axs[1, 0].plot(temps, derivee_1(temps), 'b', label='Première dérivée')
-    # axs[1, 0].plot(temps[(list(derivee_1(temps))).index(max(derivee_1(temps)))], max(derivee_1(temps)), 'r*', label=f'Gmax : {max(derivee_1(temps))}')
+    axs[1, 0].plot(temps_derivee, poly_1(temps_derivee), 'y', label="Polynôme approximative du derviée l'ordre 1 ")
+    axs[1, 0].plot(temps_derivee[i_max], (poly_1(temps_derivee))[i_max], 'r*', label=f"Gmax = {G_max}°C/min")
     axs[1, 0].set_title('Première dérivée')
     axs[1, 0].set_ylabel('°C/min')
     axs[1, 0].grid(True)
     axs[1, 0].legend()
 
+
     # Tracé de la troisième figure (Deuxième dérivée)
     # axs[2, 0].plot(temps, derivee_2(temps), 'g', label='Deuxième dérivée')
     axs[2, 0].scatter(temps_derivee_2, temperatures_moyennes_derivee_2, s=10)
-    axs[2, 0].plot(temps_derivee_2, poly_2(temps_derivee_2), 'g-', label=f'Tlag : {T_lag}')
+    axs[2, 0].plot(temps_derivee_2, poly_2(temps_derivee_2), 'g-', label="Polynôme approximative du derviée l'ordre 2")
+    axs[2, 0].plot(temps_derivee_2[i_lag], (poly_2(temps_derivee_2))[i_lag], 'r*', label=f'Tlag : {T_lag} min')
     axs[2, 0].set_title('Deuxième dérivée')
-    axs[2, 0].set_xlabel('temps: min')
+    axs[2, 0].set_xlabel('Temps: min')
     axs[2, 0].set_ylabel('°C/min²')
     axs[2, 0].grid(True)
     axs[2, 0].legend()
 
+    log_G_max = round(np.log10(G_max), 1)
+    log_T_lag = round(np.log10(T_lag), 1)
+    R = round((temperatures_moyennes[-1] / T_pre(fichier_txt)) * 100, 1)
+    test_resultat, bool_factors = diagnostic(log_G_max, log_T_lag, R)
 
-    Tpre = round(T_pre(fichier_txt), 2)
     # Ajouter le tableau dans la deuxième colonne
-    donnees_tableau = [
-            [
-                ["Facteur", "Patient" , "Non Raynaud", "Avec Raynaud"],
-                ["Age", "âge patient", 39.2, 44.2],
-                ["T_pre", f"{Tpre}°C", "30.04°C", "25.9°C"],
-                ["T_debut", f"{round(temperatures_moyennes[0],2)}°C", "22.6°C", "20.02°C"],
-                ["Log_10(Gmax)", f"{round(G_max, 2)}", 0.24, -0.16],
-                ["Log_10(Tlag)", f"{round(T_lag, 2)}", 0.19, 0.65],
-                ["Max_R%", f"{round((Tpre/temperatures_moyennes[-1])*100, 2)}%", "131.2%", "66.6%"]
+    donnees_tableau = [[
+                ["Facteur", f"Patient ({nom})" , "Non Raynaud", "Avec Raynaud"],
+                # ["Log_10(Gmax)", f"{log_G_max}", "[0.15, 0.35]", "[-0.5, 0.1]"],
+                # ["Log_10(Tlag)", f"{log_T_lag}", "[-0.5, 0.4]", "[>0.5]"],
+                ["Log_10(Gmax)", f"{log_G_max}", ">0.15", "<=0.15"],
+                ["Log_10(Tlag)", f"{log_T_lag}", "<0.5", ">=0.5"],
+                ["R%", f"{R}%", ">75%", "<=75%"]
             ],
             [
-                ["Facteur", "Patient_Appartient"],
-                ["Age", "âge patient"],
-                ["T_pre", ""],
-                ["T_debut", ""],
-                ["Log_10(Gmax)", "" ],
-                ["Log_10(Tlag)", ""],
-                ["Max_R%", ""]
+                ["Facteur", "Résultat"],
+                ["Log_10(Gmax)", bool_factors[0]],
+                ["Log_10(Tlag)", bool_factors[1]],
+                ["R%", bool_factors[2]]
             ],
             [
-                # ["Conclusion", ""],
-                ["Test résultat", ""]
+                ["Résultat", test_resultat],
             ]
         ]
     
+    # Titre du tableau
+    titre_tableau = ["Traitement des données", "Résultat de l'analyse", "Diagnostic"]
 
     for i in range(3):
-        tableau = axs[i, 1].table(cellText=donnees_tableau[i], bbox=[0, 0, 1, 1], cellLoc='center', fontsize=12)
+        tableau = axs[i, 1].table(cellText=donnees_tableau[i], bbox=[0, 0, 1, 1], cellLoc='center', fontsize=20)
         axs[i, 1].axis('off') # Supprimer les axes du deuxième sous-graphique
-        axs[i, 1].annotate(f'Titre du Tableau {i}', xy=(0.5, 1.05), xycoords='axes fraction', ha='center', fontsize=12)
+        axs[i, 1].annotate(titre_tableau[i], xy=(0.5, 1.05), xycoords='axes fraction', ha='center', fontsize=20)
+
+        if i == 2:
+            tableau.auto_set_font_size(False)
+            tableau.set_fontsize(16)
     
     # Ajuster l'espacement entre les sous-graphiques
     plt.tight_layout(pad=3.5)
+
+    # Sauvegarder la figure
+    plt.savefig(f"Résultats/{nom}.png")
     
     # Afficher la figure
     plt.show()
+
+def diagnostic(log_G_max, log_T_lag, R):
+    bool_factors = ["Non Raynaud", "Non Raynaud", "Non Raynaud"]
+
+    if log_G_max <= 0.15:
+        bool_factors[0] = "Avec Raynaud"
+    if log_T_lag >= 0.5:
+        bool_factors[1] = "Avec Raynaud"
+    if R <= 75:
+        bool_factors[2] = "Avec Raynaud"
+
+    if bool_factors.count("Avec Raynaud") >= 2:
+        return "Positif", bool_factors
+    else:
+        return "Négatif", bool_factors
 
 def main(): # Recevoir nom fichier, step, degre
     """
@@ -216,35 +237,31 @@ def main(): # Recevoir nom fichier, step, degre
     #definir la paramètre
     n = 9
     step = 1
-    # list = ['ngan', 'hung', 'bao anh', 'hugo', 'ines']
-    # for nom in list:
-    # fichier_txt = f"{nom}/coordinates.txt"
-    # nom_fichier = f"{nom}/temperatures.json"
+    list1 = ["hung2", "kiet", "margot", "khai"]
+    list2 = ["bao anh", "hugo", "ngan", "ines", "elisabeth"]
 
-    fichier_txt = "coordinates.txt"
-    nom_fichier = "temperatures.json"
+    for nom in list2:
+        fichier_txt = f"{nom}/coordinates.txt"
+        nom_fichier = f"{nom}/temperatures.json"
 
-    #Traiter les données
-    donnees = lire_fichier_json(nom_fichier)
-    temps, temperatures = traiter_donnees(donnees)
-    temperatures_moyennes= T_moyenne(temperatures)
-    
-    #Trier les données, prend juste chaque 15 seconde
-    temps_n = []
-    temperature_n = []
-    for i in range(0, len(temperatures_moyennes)):
-        temps_n.append(temps[i])
-        temperature_n.append(temperatures_moyennes[i])
-    
-    temperatures_moyennes = np.array(temperature_n)
-    temps = np.array(temps_n)
-
-    temps, temperatures_moyennes, point_ajoute = add_points(temps, temperatures_moyennes)
-    
-    tracer_donnees_global(temps, temperatures_moyennes, n, step, fichier_txt)
+        #Traiter les données
+        donnees = lire_fichier_json(nom_fichier)
+        temps, temperatures = traiter_donnees(donnees)
+        temperatures_moyennes= T_moyenne(temperatures)
+        
+        #Trier les données, prend juste chaque 15 seconde
+        temps_n = []
+        temperature_n = []
+        # for i in range(0, len(temperatures_moyennes), 50):
+        for i in range(0, len(temperatures_moyennes)):
+            temps_n.append(temps[i])
+            temperature_n.append(temperatures_moyennes[i])
+        
+        temperatures_moyennes = np.array(temperature_n)
+        temps = np.array(temps_n)
+        
+        tracer_donnees_global(temps, temperatures_moyennes, n, step, fichier_txt, nom)
 
 
-# if __name__ == "__main__":
-#     main()
-
-
+if __name__ == "__main__":
+    main()
