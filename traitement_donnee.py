@@ -21,10 +21,6 @@ def traiter_donnees(donnees):
     temps = np.array(temps)
     return temps / 60, temperatures
 
-def valeur(temperatures):
-    T_50 = (temperatures[-1] + temperatures[0]) / 2
-    return T_50
-
 def ajouter_points(temps, temperatures_moyennes):
     x = temps
     y = temperatures_moyennes
