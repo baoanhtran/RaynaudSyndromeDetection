@@ -21,13 +21,13 @@ def traiter_donnees(donnees):
     temps = np.array(temps)
     return temps / 60, temperatures
 
-def valeur(temps, temperatures):
+def valeur(temperatures):
     T_50 = (temperatures[-1] + temperatures[0]) / 2
     return T_50
 
-def add_points(temps,average_temperatures):
+def ajouter_points(temps, temperatures_moyennes):
     x = temps
-    y = average_temperatures
+    y = temperatures_moyennes
 
     all_x_added = []
     all_y_added = []
@@ -37,26 +37,19 @@ def add_points(temps,average_temperatures):
         delta_T = abs(y[i + 1] - y[i])
         if delta_T >= 0.4:
             no_points = int(round(delta_T / 0.25) + 1)
-            x_add = np.linspace(x[i], x[i + 1], no_points)
-            y_add = np.linspace(y[i], y[i + 1], no_points)
-            x_add = x_add[1:-1]
-            y_add = y_add[1:-1]
+            x_ajt = np.linspace(x[i], x[i + 1], no_points)
+            y_ajt = np.linspace(y[i], y[i + 1], no_points)
+            x_ajt = x_ajt[1:-1]
+            y_ajt = y_ajt[1:-1]
 
-            all_x_added.extend(x_add)
-            all_y_added.extend(y_add)
+            all_x_added.extend(x_ajt)
+            all_y_added.extend(y_ajt)
 
-            x = np.concatenate((x[:i + 1], x_add, x[i + 1:]))
-            y = np.concatenate((y[:i + 1], y_add, y[i + 1:]))
+            x = np.concatenate((x[:i + 1], x_ajt, x[i + 1:]))
+            y = np.concatenate((y[:i + 1], y_ajt, y[i + 1:]))
             i += no_points - 2
         i += 1
     return np.array(x), np.array(y), (all_x_added, all_y_added)
-
-def low_pass_filter(data, alpha=1):
-    filtered_data = np.zeros_like(data)
-    filtered_data[0] = data[0]
-    for i in range(1, len(data)):
-        filtered_data[i] = alpha * data[i] + (1 - alpha) * filtered_data[i - 1]
-    return filtered_data
 
 def T_moyenne(temperatures):
     return np.mean([temperatures[doigt] for doigt in range(1, 8)], axis=0)
@@ -120,10 +113,6 @@ def tracer_donnees_global(temps, temperatures_moyennes, n, step, fichier_txt, no
     temps_derivee, temperatures_moyennes_derivee = derivee_list(temps, temperatures_moyennes, step)
     temps_derivee_2, temperatures_moyennes_derivee_2 = derivee_list(temps_derivee, temperatures_moyennes_derivee, step)
 
-    # Filtrer les valeurs
-    # temperatures_moyennes_derivee = low_pass_filter(temperatures_moyennes_derivee)
-    # temperatures_moyennes_derivee_2 = low_pass_filter(temperatures_moyennes_derivee_2)
-
     # Générer la fonction approximative derivée d'ordre 1 et 2
     poly_1 = retrouve_polynome_fit(temps_derivee, temperatures_moyennes_derivee, n-1)
     poly_2 = retrouve_polynome_fit(temps_derivee_2, temperatures_moyennes_derivee_2, n-2)
@@ -137,7 +126,7 @@ def tracer_donnees_global(temps, temperatures_moyennes, n, step, fichier_txt, no
     G_max = round(G_max, 2)
 
     # Tracer le polynôme
-    temps, temperatures_moyennes, point_ajoute = add_points(temps, temperatures_moyennes)
+    temps, temperatures_moyennes, point_ajoute = ajouter_points(temps, temperatures_moyennes)
  
     # Tracé de la première figure (Polynôme)
     axs[0, 0].plot(temps, poly_approx(temps), 'r', label=f"Polynôme approximatif d'ordre {n}")
@@ -159,7 +148,6 @@ def tracer_donnees_global(temps, temperatures_moyennes, n, step, fichier_txt, no
 
 
     # Tracé de la troisième figure (Deuxième dérivée)
-    # axs[2, 0].plot(temps, derivee_2(temps), 'g', label='Deuxième dérivée')
     axs[2, 0].scatter(temps_derivee_2, temperatures_moyennes_derivee_2, s=10)
     axs[2, 0].plot(temps_derivee_2, poly_2(temps_derivee_2), 'g-', label="Polynôme approximative du derviée l'ordre 2")
     axs[2, 0].plot(temps_derivee_2[i_lag], (poly_2(temps_derivee_2))[i_lag], 'r*', label=f'Tlag : {T_lag} min')
@@ -177,8 +165,6 @@ def tracer_donnees_global(temps, temperatures_moyennes, n, step, fichier_txt, no
     # Ajouter le tableau dans la deuxième colonne
     donnees_tableau = [[
                 ["Facteur", f"Patient ({nom})" , "Non Raynaud", "Avec Raynaud"],
-                # ["Log_10(Gmax)", f"{log_G_max}", "[0.15, 0.35]", "[-0.5, 0.1]"],
-                # ["Log_10(Tlag)", f"{log_T_lag}", "[-0.5, 0.4]", "[>0.5]"],
                 ["Log_10(Gmax)", f"{log_G_max}", ">0.15", "<=0.15"],
                 ["Log_10(Tlag)", f"{log_T_lag}", "<0.5", ">=0.5"],
                 ["R%", f"{R}%", ">75%", "<=75%"]
@@ -229,39 +215,29 @@ def diagnostic(log_G_max, log_T_lag, R):
         return "Positif", bool_factors
     else:
         return "Négatif", bool_factors
-
-def main(): # Recevoir nom fichier, step, degre
-    """
-    Fonction principale pour lire les données, traiter les données et tracer les courbes.
-    """
-    #definir la paramètre
+    
+def tracer(nom):
     n = 9
     step = 1
-    list1 = ["hung2", "kiet", "margot", "khai"]
-    list2 = ["bao anh", "hugo", "ngan", "ines", "elisabeth"]
 
-    for nom in list2:
-        fichier_txt = f"{nom}/coordinates.txt"
-        nom_fichier = f"{nom}/temperatures.json"
+    fichier_txt = f"{nom}/coordinates.txt"
+    nom_fichier = f"{nom}/temperatures.json"
 
-        #Traiter les données
-        donnees = lire_fichier_json(nom_fichier)
-        temps, temperatures = traiter_donnees(donnees)
-        temperatures_moyennes= T_moyenne(temperatures)
-        
-        #Trier les données, prend juste chaque 15 seconde
-        temps_n = []
-        temperature_n = []
-        # for i in range(0, len(temperatures_moyennes), 50):
-        for i in range(0, len(temperatures_moyennes)):
-            temps_n.append(temps[i])
-            temperature_n.append(temperatures_moyennes[i])
-        
-        temperatures_moyennes = np.array(temperature_n)
-        temps = np.array(temps_n)
-        
-        tracer_donnees_global(temps, temperatures_moyennes, n, step, fichier_txt, nom)
+    #Traiter les données
+    donnees = lire_fichier_json(nom_fichier)
+    temps, temperatures = traiter_donnees(donnees)
+    temperatures_moyennes= T_moyenne(temperatures)
+    
+    #Trier les données, prend juste chaque 15 seconde
+    temps_n = []
+    temperature_n = []
 
-
-if __name__ == "__main__":
-    main()
+    # for i in range(0, len(temperatures_moyennes), 50):
+    for i in range(0, len(temperatures_moyennes)):
+        temps_n.append(temps[i])
+        temperature_n.append(temperatures_moyennes[i])
+    
+    temperatures_moyennes = np.array(temperature_n)
+    temps = np.array(temps_n)
+    
+    tracer_donnees_global(temps, temperatures_moyennes, n, step, fichier_txt, nom)

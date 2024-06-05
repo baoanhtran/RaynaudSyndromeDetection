@@ -1,14 +1,14 @@
 import cv2
 
-def check_coordinates():
-    # Read the image with the drawn points.
-    img = cv2.imread("coordinates.jpg")
+def check_coordinates(nom):
+    # Lire l'image avec les points dessinés.
+    img = cv2.imread(f"{nom}/coordinates.jpg")
 
-    # Display the image with the drawn points in a window named "Coordinates".
+    # Afficher l'image avec les points dessinés dans une fenêtre nommée "Coordinates".
     cv2.imshow("Coordinates", img)
 
-    # Wait for the user to press any key to close the window.
+    # Attendre que l'utilisateur appuie sur une touche pour fermer la fenêtre.
     cv2.waitKey(0)
 
-    # Close all windows when done.
+    # Fermer toutes les fenêtres lorsqu'on a terminé.
     cv2.destroyAllWindows()

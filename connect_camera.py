@@ -41,16 +41,16 @@ def display_frame(frame_thermal, list_of_temp):
         cv2.putText(frame_thermal, "{0:.1f}".format(temp), (x_mouse, y_mouse), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)  # Afficher la température à côté du point
     cv2.imshow("Measuring window", frame_thermal)  # Afficher le cadre
 
-def get_coordinates():
+def get_coordinates(): # Fonction pour obtenir les coordonnées initiales des doigts
     with open("coordinates.txt", "r") as f:
         lines = f.readlines()
         coordinates = []
         for line in lines:
-            x, y, temp = line.strip().split()
+            x, y, temp = line.strip().split() # Séparer les coordonnées et la température
             coordinates.append((int(x), int(y)))
     return coordinates
 
-def start_measure():
+def start_measure(nom):
     global start_time, last_save_time, list_of_points
     list_of_points = get_coordinates()
     thermal_camera = initialize_camera()  # Initialiser la caméra thermique
@@ -78,8 +78,5 @@ def start_measure():
 
     cv2.destroyAllWindows()  # Fermer toutes les fenêtres
 
-    with open('temperatures.json', 'w') as f:  # Enregistrer les températures dans un fichier JSON
+    with open(f'{nom}/temperatures.json', 'w') as f:  # Enregistrer les températures dans un fichier JSON
         json.dump(temperatures_dict, f, indent=4)
-
-# if __name__ == "__main__":
-#     start_measure()
