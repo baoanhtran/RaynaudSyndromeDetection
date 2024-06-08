@@ -10,7 +10,8 @@ class App(tk.Tk):
         super().__init__()
 
         self.title("Raynaud Syndrome Detector")
-        self.geometry("400x400")
+        self.geometry("400x500")
+        self.resizable(False, False)
 
         # Étiquette pour le nom du patient
         self.name_label = tk.Label(self, text="Nom du patient")

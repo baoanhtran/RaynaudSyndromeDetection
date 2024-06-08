@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import time
 import json
+import tkinter as tk
+from threading import Thread
 
 TEMPERATURE_MIN = 20  # Température minimale de la caméra en °C
 TEMPERATURE_MAX = 36  # Température maximale de la caméra en °C
@@ -10,6 +12,8 @@ list_of_points = []  # Liste pour stocker les points où l'utilisateur a cliqué
 temperatures_dict = {}  # Dictionnaire pour stocker les températures à différents points
 start_time = None  # Le temps de démarrage de la mise à jour des températures
 last_save_time = None  # Le temps de la dernière sauvegarde des températures
+stop_flag = False # Drapeau pour arrêter le thread de mise à jour du timer
+root = None  # Fenêtre racine pour l'interface graphique du timer
 
 def initialize_camera():
     thermal_camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # Ouvrir la caméra thermique
@@ -41,23 +45,37 @@ def display_frame(frame_thermal, list_of_temp):
         cv2.putText(frame_thermal, "{0:.1f}".format(temp), (x_mouse, y_mouse), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)  # Afficher la température à côté du point
     cv2.imshow("Measuring window", frame_thermal)  # Afficher le cadre
 
-def get_coordinates(): # Fonction pour obtenir les coordonnées initiales des doigts
-    with open("coordinates.txt", "r") as f:
+def get_coordinates(nom):  # Fonction pour obtenir les coordonnées initiales des doigts
+    with open(f"{nom}/coordinates.txt", "r") as f:
         lines = f.readlines()
         coordinates = []
         for line in lines:
-            x, y, temp = line.strip().split() # Séparer les coordonnées et la température
+            x, y, temp = line.strip().split()  # Séparer les coordonnées et la température
             coordinates.append((int(x), int(y)))
     return coordinates
 
+def update_timer(timer_label):
+    while not stop_flag:
+        if start_time is not None:
+            elapsed_time = time.time() - start_time
+            hours, rem = divmod(elapsed_time, 3600)
+            minutes, seconds = divmod(rem, 60)
+            timer_label.config(text=f"Timer: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
+        time.sleep(0.1)
+
 def start_measure(nom):
-    global start_time, last_save_time, list_of_points
-    list_of_points = get_coordinates()
+    global start_time, last_save_time, list_of_points, temperatures_dict, stop_flag, root
+    list_of_points = get_coordinates(nom)
     thermal_camera = initialize_camera()  # Initialiser la caméra thermique
     grabbed, frame_thermal = read_thermal_frame(thermal_camera)  # Lire une image de la caméra
     cv2.imshow("Measuring window", frame_thermal)  # Afficher l'image
     start_time = time.time()  # Obtenir le temps actuel
     last_save_time = start_time  # Initialiser le temps de la dernière sauvegarde
+
+    # Start the timer GUI in a separate thread
+    timer_thread = Thread(target=run_timer_gui)
+    timer_thread.daemon = True
+    timer_thread.start()
 
     while True:
         grabbed, frame_thermal = read_thermal_frame(thermal_camera)  # Lire une image de la caméra
@@ -77,6 +95,25 @@ def start_measure(nom):
             break
 
     cv2.destroyAllWindows()  # Fermer toutes les fenêtres
+    stop_flag = True  # Arrêter le thread de mise à jour du timer
+    root.after(1, root.destroy)  # Fermer la fenêtre du timer
 
     with open(f'{nom}/temperatures.json', 'w') as f:  # Enregistrer les températures dans un fichier JSON
         json.dump(temperatures_dict, f, indent=4)
+
+def run_timer_gui():
+    global root
+    root = tk.Tk()
+    root.title("Timer")
+    root.overrideredirect(True)
+    root.resizable(False, False)
+
+    timer_label = tk.Label(root, text="Timer: 00:00:00", font=("Helvetica", 16))
+    timer_label.pack(padx=20, pady=20)
+
+    # Start the timer update thread
+    timer_update_thread = Thread(target=update_timer, args=(timer_label,))
+    timer_update_thread.daemon = True
+    timer_update_thread.start()
+
+    root.mainloop()

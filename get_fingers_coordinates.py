@@ -1,5 +1,6 @@
 import cv2
 import mediapipe as mp
+import os
 
 def get_coordinates(nom):
     chosen_index = [6, 10, 14, 18]
@@ -47,7 +48,11 @@ def get_coordinates(nom):
                         list_of_temp = get_temperature(img, chosen_coordinates)
 
                 # Sauvegarder les températures correspondant aux points sélectionnés.
-                with open("coordinates.txt", "w") as f:
+                # Create the directory if it doesn't exist
+                os.makedirs(nom, exist_ok=True)
+
+                # Write the coordinates and temperatures to a text file
+                with open(f"{nom}/coordinates.txt", "w") as f:
                     for i in range(len(chosen_coordinates)):
                         f.write(f"{chosen_coordinates[i][0]} {chosen_coordinates[i][1]} {list_of_temp[i]}\n")
             
