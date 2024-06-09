@@ -14,6 +14,8 @@ start_time = None  # Le temps de démarrage de la mise à jour des températures
 last_save_time = None  # Le temps de la dernière sauvegarde des températures
 stop_flag = False # Drapeau pour arrêter le thread de mise à jour du timer
 root = None  # Fenêtre racine pour l'interface graphique du timer
+prev_frame_temp = None  # Température de la trame précédente
+current_frame_temp = None  # Température de la trame actuelle
 
 def initialize_camera():
     thermal_camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # Ouvrir la caméra thermique
@@ -43,7 +45,7 @@ def display_frame(frame_thermal, list_of_temp):
         cv2.circle(frame_thermal, (x_mouse, y_mouse), 2, (255, 255, 255), -1)  # Dessiner un cercle blanc à la position du clic de la souris
         temp = list_of_temp[list_of_points.index(point)]  # Obtenir la température correspondante à ce point
         cv2.putText(frame_thermal, "{0:.1f}".format(temp), (x_mouse, y_mouse), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)  # Afficher la température à côté du point
-    cv2.imshow("Measuring window", frame_thermal)  # Afficher le cadre
+    cv2.imshow("Fenêtre de mesure", frame_thermal)  # Afficher le cadre
 
 def get_coordinates(nom):  # Fonction pour obtenir les coordonnées initiales des doigts
     with open(f"{nom}/coordinates.txt", "r") as f:
@@ -54,21 +56,27 @@ def get_coordinates(nom):  # Fonction pour obtenir les coordonnées initiales de
             coordinates.append((int(x), int(y)))
     return coordinates
 
-def update_timer(timer_label):
+def update_timer(timer_label, diff_label):
+    global prev_frame_temp, stop_flag, current_frame_temp
     while not stop_flag:
         if start_time is not None:
             elapsed_time = time.time() - start_time
             hours, rem = divmod(elapsed_time, 3600)
             minutes, seconds = divmod(rem, 60)
-            timer_label.config(text=f"Timer: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
+            timer_label.config(text=f"Temps écoulé: {int(hours):02}:{int(minutes):02}:{int(seconds):02}")
+
+            if prev_frame_temp:
+                if current_frame_temp:
+                    mean_temp_diff = abs(current_frame_temp - prev_frame_temp)
+                    diff_label.config(text=f"Variation de température: {mean_temp_diff:.2f}°C")
         time.sleep(0.1)
 
 def start_measure(nom):
-    global start_time, last_save_time, list_of_points, temperatures_dict, stop_flag, root
+    global start_time, last_save_time, list_of_points, temperatures_dict, stop_flag, root, prev_frame_temp, current_frame_temp
     list_of_points = get_coordinates(nom)
     thermal_camera = initialize_camera()  # Initialiser la caméra thermique
     grabbed, frame_thermal = read_thermal_frame(thermal_camera)  # Lire une image de la caméra
-    cv2.imshow("Measuring window", frame_thermal)  # Afficher l'image
+    cv2.imshow("Fenêtre de mesure", frame_thermal)  # Afficher l'image
     start_time = time.time()  # Obtenir le temps actuel
     last_save_time = start_time  # Initialiser le temps de la dernière sauvegarde
 
@@ -77,15 +85,24 @@ def start_measure(nom):
     timer_thread.daemon = True
     timer_thread.start()
 
+    list_of_temp = get_temperature(frame_thermal)  # Obtenir les températures à différents points
+    prev_frame_temp = np.mean(list_of_temp)
+
     while True:
         grabbed, frame_thermal = read_thermal_frame(thermal_camera)  # Lire une image de la caméra
         if not grabbed:  # Si l'image n'a pas été lue avec succès, sortir de la boucle
             break
-        list_of_temp = get_temperature(frame_thermal)  # Obtenir les températures à différents points
+
+        list_of_temp = get_temperature(frame_thermal) # Obtenir les températures à différents points
         display_frame(frame_thermal, list_of_temp)  # Afficher l'image avec les températures
 
         current_time = time.time()
         if current_time - last_save_time >= 15:  # Vérifier si 15 secondes se sont écoulées depuis la dernière sauvegarde
+            if current_frame_temp is not None:
+                prev_frame_temp = current_frame_temp
+
+            current_frame_temp = np.mean(list_of_temp) 
+
             time_saved = current_time - start_time
             temperatures_dict[round(time_saved, 2)] = list_of_temp
             last_save_time = current_time  # Mettre à jour le temps de la dernière sauvegarde
@@ -104,15 +121,17 @@ def start_measure(nom):
 def run_timer_gui():
     global root
     root = tk.Tk()
-    root.title("Timer")
-    root.overrideredirect(True)
+    root.title("Minuteur")
     root.resizable(False, False)
 
-    timer_label = tk.Label(root, text="Timer: 00:00:00", font=("Helvetica", 16))
+    timer_label = tk.Label(root, text="Temps écoulé: 00:00:00", font=("Helvetica", 16))
     timer_label.pack(padx=20, pady=20)
 
+    diff_label = tk.Label(root, text="Variation de température: 0.00°C", font=("Helvetica", 16))
+    diff_label.pack(padx=20, pady=20)
+
     # Start the timer update thread
-    timer_update_thread = Thread(target=update_timer, args=(timer_label,))
+    timer_update_thread = Thread(target=update_timer, args=(timer_label, diff_label))
     timer_update_thread.daemon = True
     timer_update_thread.start()
 
