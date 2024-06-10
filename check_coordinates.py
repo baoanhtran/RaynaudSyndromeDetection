@@ -2,6 +2,7 @@ import cv2
 
 def check_coordinates(nom):
     # Lire l'image avec les points dessinés.
+    # img = cv2.imread(f"{nom}/coordinates.jpg")
     img = cv2.imread(f"{nom}/coordinates.jpg")
 
     # Afficher l'image avec les points dessinés dans une fenêtre nommée "Coordinates".

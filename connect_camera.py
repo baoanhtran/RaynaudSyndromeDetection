@@ -21,6 +21,7 @@ def initialize_camera():
     thermal_camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # Ouvrir la caméra thermique
     thermal_camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc('Y', '1', '6', ' '))  # Définir le codec pour la caméra thermique, Y16 est un format de pixel 16 bits
     thermal_camera.set(cv2.CAP_PROP_CONVERT_RGB, 0)  # Désactiver la conversion en RGB
+
     return thermal_camera
 
 def read_thermal_frame(thermal_camera):
@@ -40,11 +41,16 @@ def display_frame(frame_thermal, list_of_temp):
     cv2.normalize(frame_thermal, frame_thermal, 0, 255, cv2.NORM_MINMAX)  # Normaliser l'image pour affichage en niveaux de gris
     frame_thermal = np.uint8(frame_thermal)  # Convertir l'image en entier non signé 8 bits
     frame_thermal = cv2.applyColorMap(frame_thermal, cv2.COLORMAP_INFERNO)  # Appliquer la carte de couleurs Inferno au cadre
+
     for point in list_of_points:  # Boucle à travers la liste des points où l'utilisateur a cliqué
         x_mouse, y_mouse = point
         cv2.circle(frame_thermal, (x_mouse, y_mouse), 2, (255, 255, 255), -1)  # Dessiner un cercle blanc à la position du clic de la souris
         temp = list_of_temp[list_of_points.index(point)]  # Obtenir la température correspondante à ce point
         cv2.putText(frame_thermal, "{0:.1f}".format(temp), (x_mouse, y_mouse), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1, cv2.LINE_AA)  # Afficher la température à côté du point
+    
+    cv2.namedWindow("Fenêtre de mesure", cv2.WND_PROP_FULLSCREEN)
+    cv2.setWindowProperty("Fenêtre de mesure", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    
     cv2.imshow("Fenêtre de mesure", frame_thermal)  # Afficher le cadre
 
 def get_coordinates(nom):  # Fonction pour obtenir les coordonnées initiales des doigts
@@ -76,6 +82,10 @@ def start_measure(nom):
     list_of_points = get_coordinates(nom)
     thermal_camera = initialize_camera()  # Initialiser la caméra thermique
     grabbed, frame_thermal = read_thermal_frame(thermal_camera)  # Lire une image de la caméra
+
+    cv2.namedWindow("Fenêtre de mesure", cv2.WND_PROP_FULLSCREEN)
+    cv2.setWindowProperty("Fenêtre de mesure", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
     cv2.imshow("Fenêtre de mesure", frame_thermal)  # Afficher l'image
     start_time = time.time()  # Obtenir le temps actuel
     last_save_time = start_time  # Initialiser le temps de la dernière sauvegarde
@@ -121,7 +131,7 @@ def start_measure(nom):
 def run_timer_gui():
     global root
     root = tk.Tk()
-    root.title("Minuteur")
+    root.title("Chronomètre")
     root.resizable(False, False)
 
     timer_label = tk.Label(root, text="Temps écoulé: 00:00:00", font=("Helvetica", 16))

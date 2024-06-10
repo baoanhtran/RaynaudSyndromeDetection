@@ -9,7 +9,7 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.title("Raynaud Syndrome Detector")
+        self.title("Détecteur du Syndrome de Raynaud")
         self.geometry("400x500")
         self.resizable(False, False)
 
